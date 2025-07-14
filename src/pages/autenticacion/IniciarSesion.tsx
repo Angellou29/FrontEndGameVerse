@@ -2,9 +2,18 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Form, Alert } from 'react-bootstrap';
 import LogoPrincipal from '../../imagenes/LogoPrincipal.png';
-import { iniciarSesion } from '../../api/usuarios';
+import { iniciarSesion as apiIniciarSesion } from '../../api/apiUsuarios';
+import { useUser } from '../../context/UserContext';
+import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../../css/IniciarSesion.css';
+
+export const iniciarSesion = async (datos: { correo: string; contrasena: string }) => {
+    const response = await axios.post(`${URL}/login`, datos, {
+      withCredentials: true
+    });
+    return response.data;
+  };
 
 function IniciarSesion() {
   const [mostrarContrasena, setMostrarContrasena] = useState(false);
@@ -12,20 +21,30 @@ function IniciarSesion() {
   const [contrasena, setContrasena] = useState('');
   const [mensajeError, setMensajeError] = useState('');
   const navegar = useNavigate();
+  const { login } = useUser();
+  const URL = 'http://localhost:3001/api/usuarios';
 
   const manejarInicioSesion = async () => {
     setMensajeError('');
 
+    if (!usuarioOEmail || !contrasena) {
+      setMensajeError('Por favor complete todos los campos.');
+      return;
+    }
+
     try {
-      const respuesta = await iniciarSesion({ correo: usuarioOEmail, contrasena });
-      if (respuesta.error) {
-        setMensajeError(respuesta.error);
+      const respuesta = await apiIniciarSesion({ correo: usuarioOEmail, contrasena });
+
+      if (!respuesta || !respuesta.usuario) {
+        setMensajeError(respuesta?.error || 'Credenciales inválidas');
       } else {
+        login(respuesta.usuario);
         const tipo = respuesta.usuario.tipo;
         if (tipo === 'admin') navegar('/ListadoUsuarios');
-        else navegar(`/Inicio?username=${respuesta.usuario.nickname}`);
+        else navegar('/Inicio');
       }
-    } catch (e) {
+    } catch (error) {
+      console.error('Error al iniciar sesión:', error);
       setMensajeError('Error de conexión con el servidor.');
     }
   };

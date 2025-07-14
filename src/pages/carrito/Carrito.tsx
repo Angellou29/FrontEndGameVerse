@@ -4,14 +4,14 @@ import 'bootstrap/dist/js/bootstrap.bundle.min';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../../css/Carrito.css';
 import type { CarritoItem } from '../carrito/DetalleCarrito'; 
-import { imagenes } from '../carrito/DetalleCarrito';
-import { useNavigate} from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import CarroVacio from '../../imagenes/CarroVacio.png';
 import BarraNav from '../catalogo/BarraNavUser';
 
 function CarritoPage() {
   const navigate = useNavigate();
+
   const obtenerCarrito = (): CarritoItem[] => {
     const carritoGuardado = localStorage.getItem('carrito');
     return carritoGuardado ? JSON.parse(carritoGuardado) : [];
@@ -23,12 +23,8 @@ function CarritoPage() {
     const handleStorageChange = () => {
       setCarritoItems(obtenerCarrito());
     };
-
     window.addEventListener('storage', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const guardarCarrito = (carrito: CarritoItem[]) => {
@@ -67,18 +63,14 @@ function CarritoPage() {
 
   return (
     <div className="inicio-page">
-      {/* Navbar */}
       <BarraNav />
-
-      {/* Contenido principal */}
       <div className="contenedor-principal">
         <div className="container row">
-          {/* Lista del carrito */}
           <div className="col-md-7" id="contenedor-carrito">
             {carritoItems.length === 0 ? (
               <div className="contenedor-carrito-vacio">
-                <div id ="carrito-vacio" className="mensaje-carrito-vacio d-flex flex-column align-items-center">
-                  <img src={CarroVacio} alt="Carrito Vacío" className="icono-carrito-vacio"></img>
+                <div id="carrito-vacio" className="mensaje-carrito-vacio d-flex flex-column align-items-center">
+                  <img src={CarroVacio} alt="Carrito Vacío" className="icono-carrito-vacio" />
                   <p className="text-center mb-0">El carrito está vacío.</p>
                 </div>
               </div>
@@ -99,8 +91,12 @@ function CarritoPage() {
                       <tr key={item.id}>
                         <td>
                           <div className="item-info">
-                            {item.nombre && (item.nombre in imagenes) && (
-                              <img src={imagenes[item.nombre as keyof typeof imagenes]} alt={item.nombre} />
+                            {item.imagen && (
+                              <img
+                                src={item.imagen}
+                                alt={item.nombre}
+                                style={{ width: '80px', height: '80px', objectFit: 'cover' }}
+                              />
                             )}
                           </div>
                         </td>
@@ -153,7 +149,7 @@ function CarritoPage() {
               <span className="monto-subtotal">S/ {subtotal.toFixed(2)}</span>
             </div>
             <div className="resumen-linea">
-              <span>Envío:</span>
+              <span>Comisión:</span>
               <span className="monto-envio">
                 {carritoItems.length > 0 ? `S/ ${envio.toFixed(2)}` : 'S/ 0.00'}
               </span>

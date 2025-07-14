@@ -10,9 +10,12 @@ import Footer from './Footer';
 import DetalleJuego from './DetalleJuego';
 import type { Juego as JuegoType, Comentario as ComentarioType } from './DetalleJuego';
 import BarraCarrito from '../carrito/BarraCarrito';
-import { mostrarMensajeToast, handleAgregarAlCarrito as handleAgregarAlCarritoBase } from '../carrito/DetalleCarrito';
+import { handleAgregarAlCarrito, mostrarMensajeToast } from '../../context/carrito';
+import { useUser } from '../../context/UserContext';
 import Slider from 'rc-slider';
 import { Dropdown } from 'react-bootstrap';
+
+type Plataforma = { id: number; nombre: string };
 
 function Catalogo() {
   const [nombreBusqueda, setNombreBusqueda] = useState('');
@@ -26,6 +29,8 @@ function Catalogo() {
   const [listaProductos, setListaProductos] = useState<JuegoType[]>([]);
   const [plataformasSeleccionadas, setPlataformasSeleccionadas] = useState<string[]>([]);
   const refBusqueda = useRef<HTMLInputElement>(null);
+  const [mensajeError, setMensajeError] = useState('');
+  const { autenticado } = useUser();
 
   useEffect(() => {
     fetch('http://localhost:3001/api/juegos')
@@ -50,16 +55,21 @@ function Catalogo() {
       const coincideNombre = producto.nombre.toLowerCase().includes(nombreNormalizado);
       const coincidePrecio = producto.precio >= precioMinimo && producto.precio <= precioMaximo;
       const coincidePlataforma = plataformasSeleccionadas.length === 0 ||
-        producto.plataformas.some((p: string) => plataformasSeleccionadas.includes(p));
-
+        producto.plataformas.some(p =>
+          plataformasSeleccionadas.includes(p.nombre)
+        );
       return coincideNombre && coincidePrecio && coincidePlataforma;
     });
+
 
     setProductosFiltrados(productosFiltradosActuales);
   };
 
-  const obtenerTodasLasPlataformas = Array.from(
-    new Set([...listaProductos.flatMap((p: JuegoType) => p.plataformas), 'PC', 'PS5', 'XBOX', 'SWITCH'])
+  const obtenerTodasLasPlataformas: Plataforma[] = Array.from(
+    new Map(listaProductos
+      .flatMap(p => p.plataformas)
+      .map(plat => [plat.id, plat])  // usar Map para evitar duplicados por ID
+    ).values()
   );
 
   const handleCambioNombreBusqueda = (evento: ChangeEvent<HTMLInputElement>) => {
@@ -90,30 +100,36 @@ function Catalogo() {
     setMostrarFiltroLateral(!mostrarFiltroLateral);
   };
 
-  const handleCambioPlataforma = (evento: ChangeEvent<HTMLInputElement>) => {
-    const plataforma: string = evento.target.value;
-    const estaMarcado = evento.target.checked;
-
-    setPlataformasSeleccionadas(prev => {
-      if (estaMarcado) return [...prev, plataforma];
-      return prev.filter(p => p !== plataforma);
-    });
+  const handleCambioPlataforma = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const nombre = e.target.value;
+    setPlataformasSeleccionadas(prev =>
+      e.target.checked
+        ? [...prev, nombre]
+        : prev.filter(p => p !== nombre)
+    );
   };
 
   const handleAgregarJuegoAlCarrito = (evento: React.MouseEvent<HTMLButtonElement>) => {
-    const boton = evento.currentTarget;
-    const id = parseInt(boton.dataset.id || '', 10);
-    const nombre = boton.dataset.nombre;
-    const precioString = boton.dataset.precio;
-    const precio = precioString ? parseFloat(precioString) : undefined;
-    const imagen = boton.dataset.imagen;
+  if (!autenticado) {
+    setMensajeError('Debes iniciar sesión o registrarte para agregar este juego al carrito.');
+    setTimeout(() => setMensajeError(''), 4000);
+    return;
+  }
 
-    if (id && nombre && precio !== undefined && imagen) {
-      handleAgregarAlCarritoBase(evento);
-      mostrarMensajeToast(`"${nombre}" ha sido añadido al carrito!`);
-      setTimeout(() => window.location.reload(), 1000);
-    }
-  };
+  const boton = evento.currentTarget;
+  const id = parseInt(boton.dataset.id || '', 10);
+  const nombre = boton.dataset.nombre;
+  const precioString = boton.dataset.precio;
+  const precio = precioString ? parseFloat(precioString) : undefined;
+  const imagen = boton.dataset.imagen;
+
+  if (id && nombre && precio !== undefined && imagen) {
+    handleAgregarAlCarrito(evento);
+    mostrarMensajeToast(`"${nombre}" ha sido añadido al carrito!`);
+    setTimeout(() => window.location.reload(), 1000);
+  }
+};
+
 
   const handleAgregarComentario = (juegoId: number, comentario: Omit<ComentarioType, 'id' | 'date'>) => {
     setListaProductos(prev =>
@@ -247,20 +263,22 @@ function Catalogo() {
 
               <h5 className="mb-2 mt-4 text-white">Plataformas</h5>
               {obtenerTodasLasPlataformas.map(plataforma => (
-                <div key={plataforma} className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    value={plataforma}
-                    id={`plataforma-${plataforma}`}
-                    onChange={handleCambioPlataforma}
-                    checked={plataformasSeleccionadas.includes(plataforma)}
-                  />
-                  <label className="form-check-label text-white" htmlFor={`plataforma-${plataforma}`}>
-                    {plataforma}
-                  </label>
-                </div>
-              ))}
+                <div key={plataforma.id} className="form-check">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    value={plataforma.nombre}
+                    id={`plataforma-${plataforma.id}`}
+                    onChange={handleCambioPlataforma}
+                    checked={plataformasSeleccionadas.includes(plataforma.nombre)}
+                  />
+                  <label className="form-check-label text-white" htmlFor={`plataforma-${plataforma.id}`}>
+                    {plataforma.nombre}
+                  </label>
+                </div>
+              ))}
+
+
 
               <button className="btn btn-secondary w-100 mt-3" onClick={alternarFiltroLateral}>
                 Cerrar Filtro
@@ -271,6 +289,11 @@ function Catalogo() {
           <div className={`col ${mostrarFiltroLateral ? 'ms-md-3' : ''}`}>
             <div className="container mt-5">
               <h1 className="page-title">Catálogo de Juegos</h1>
+              {mensajeError && (
+                <div className="alert alert-danger text-center fw-bold" role="alert">
+                  {mensajeError}
+                </div>
+              )}
               <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
                 {productosFiltrados.map(producto => (
                   <div className="col" key={producto.id}>
@@ -290,10 +313,10 @@ function Catalogo() {
                         <h5 className="card-title">{producto.nombre}</h5>
                         <div className="mb-2">
                           {producto.plataformas.map(plataforma => (
-                            <span key={plataforma} className="badge bg-secondary platform-badge">
-                              {plataforma}
-                            </span>
-                          ))}
+                        <span key={plataforma.id} className="badge bg-secondary platform-badge">
+                          {plataforma.nombre}
+                        </span>
+                      ))}
                         </div>
                         <p className="card-text">{producto.descripcion?.substring(0, 80)}...</p>
                         <div className="rating mb-2">

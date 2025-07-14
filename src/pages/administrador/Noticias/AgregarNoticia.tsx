@@ -1,36 +1,49 @@
 import React, { useState } from 'react';
-import { Modal, Button, Form } from 'react-bootstrap';
-import '../../../css/AgregarNoticia.css'; 
+import { Modal, Button, Form, Alert } from 'react-bootstrap';
+import '../../../css/AgregarNoticia.css';
+import { crearNoticia } from '../../../api/apiNoticias';
+import { useUser } from '../../../context/UserContext';
 
-// Estructura Noticia Nueva
-interface NewNewsInput {
-  name: string;
-  descripcion: string;
-  foto?: File | null;
-}
-
-// Estructura de AgregarNoticia
 interface AgregarNoticiaProps {
   onCerrar: () => void;
-  onAgregar: (nuevaNoticia: NewNewsInput) => void;
+  onAgregar: () => void;
   show: boolean;
 }
 
 const AgregarNoticia: React.FC<AgregarNoticiaProps> = ({ onCerrar, onAgregar, show }) => {
-  const [name, setName] = useState<string>('');
-  const [descripcion, setDescripcion] = useState<string>('');
+  const [name, setName] = useState('');
+  const [descripcion, setDescripcion] = useState('');
   const [foto, setFoto] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Enviar Formulario que se lleno
-  const handleSubmit = (e: React.FormEvent) => {
+  const { usuario } = useUser(); // Solo para validar si está autenticado (opcional)
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onAgregar({ name, descripcion, foto });
-    setName('');
-    setDescripcion('');
-    setFoto(null);
+
+    if (!foto) {
+      setError('Debe seleccionar una imagen.');
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('descripcion', descripcion);
+      formData.append('foto', foto);
+
+      await crearNoticia(formData); // ✅ sin token, solo cookies
+      setName('');
+      setDescripcion('');
+      setFoto(null);
+      setError(null);
+      onAgregar(); // Actualiza lista
+      onCerrar();  // Cierra modal
+    } catch (err) {
+      setError('Error al crear la noticia. Intente nuevamente.');
+    }
   };
 
-  // Cambio de archivo - File
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFoto(e.target.files[0]);
@@ -44,6 +57,7 @@ const AgregarNoticia: React.FC<AgregarNoticiaProps> = ({ onCerrar, onAgregar, sh
       </Modal.Header>
       <Form onSubmit={handleSubmit}>
         <Modal.Body className="bg-dark text-white">
+          {error && <Alert variant="danger">{error}</Alert>}
           <Form.Group className="mb-3">
             <Form.Label>Nombre</Form.Label>
             <Form.Control
@@ -70,6 +84,7 @@ const AgregarNoticia: React.FC<AgregarNoticiaProps> = ({ onCerrar, onAgregar, sh
             <Form.Control
               type="file"
               onChange={handleFileChange}
+              required
               className="bg-secondary text-white"
             />
           </Form.Group>

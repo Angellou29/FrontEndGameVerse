@@ -38,18 +38,18 @@ const Paginacion = ({ paginaActual, totalPaginas, onCambiarPagina }: PaginacionP
 );
 
 const DibujarEstrellas = (rating: number) => {
-  const totalestrella = Math.floor(rating);
-  const mediaestrella = rating % 1 >= 0.5;
-  const sinestrellas = 5 - totalestrella - (mediaestrella ? 1 : 0);
+  const total = Math.floor(rating);
+  const media = rating % 1 >= 0.5;
+  const vacias = 5 - total - (media ? 1 : 0);
 
   return (
     <>
-      {Array(totalestrella).fill(null).map((_, i) => (
-        <i key={`full-${i}`} className="bi bi-star-fill"></i>
+      {Array.from({ length: total }).map((_, i) => (
+        <i key={`full-${i}`} className="bi bi-star-fill text-warning"></i>
       ))}
-      {mediaestrella && <i className="bi bi-star-half"></i>}
-      {Array(sinestrellas).fill(null).map((_, i) => (
-        <i key={`empty-${i}`} className="bi bi-star"></i>
+      {media && <i className="bi bi-star-half text-warning"></i>}
+      {Array.from({ length: vacias }).map((_, i) => (
+        <i key={`empty-${i}`} className="bi bi-star text-warning"></i>
       ))}
     </>
   );
@@ -57,13 +57,28 @@ const DibujarEstrellas = (rating: number) => {
 
 const MasVendidos = () => {
   const [juegos, setJuegos] = useState<Juego[]>([]);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const juegosPorPagina = 10;
+  const [juegoSeleccionado, setJuegoSeleccionado] = useState<Juego | null>(null);
+  const [mostrarModal, setMostrarModal] = useState(false);
 
   useEffect(() => {
     fetch("http://localhost:3001/api/juegos")
       .then(res => res.json())
-      .then((data: Juego[]) => setJuegos(data))
+      .then((data: Juego[]) => {
+        const ordenados = data.sort((a, b) => b.rating - a.rating);
+        setJuegos(ordenados);
+      })
       .catch(err => console.error("Error al cargar juegos:", err));
   }, []);
+
+  const juegosPaginados = juegos.slice((paginaActual - 1) * juegosPorPagina, paginaActual * juegosPorPagina);
+  const totalPaginas = Math.ceil(juegos.length / juegosPorPagina);
+
+  const abrirModal = (juego: Juego) => {
+    setJuegoSeleccionado(juego);
+    setMostrarModal(true);
+  };
 
   return (
     <div id="mas-vendidos-page-container">
@@ -75,43 +90,41 @@ const MasVendidos = () => {
         </h1>
 
         <div className="table-responsive">
-          <table className="table table-dark table-hover">
+          <table className="table table-dark table-hover align-middle">
             <thead>
               <tr>
-                <th scope="col">#</th>
-                <th scope="col">Portada</th>
-                <th scope="col">Nombre del Juego</th>
-                <th scope="col">Género</th>
-                <th scope="col">Plataformas</th>
-                <th scope="col">Valoración</th>
-                <th scope="col">Lanzamiento</th>
-                <th scope="col">Precio</th>
-                <th scope="col">Acciones</th>
+                <th>#</th>
+                <th>Portada</th>
+                <th>Nombre</th>
+                <th>Categoría</th>
+                <th>Plataformas</th>
+                <th>Valoración</th>
+                <th>Lanzamiento</th>
+                <th>Precio</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {juegos.slice(0, 10).map((juego, index) => (
+              {juegosPaginados.map((juego, index) => (
                 <tr key={juego.id}>
-                  <th scope="row">{index + 1}</th>
-                  <td>
-                    <img src={juego.imagen} className="game-cover" alt={juego.nombre} />
-                  </td>
+                  <td>{(paginaActual - 1) * juegosPorPagina + index + 1}</td>
+                  <td><img src={juego.imagen} alt={juego.nombre} className="game-cover" /></td>
                   <td><strong>{juego.nombre}</strong></td>
-                  <td>{juego.categoria}</td>
+                  <td>{juego.categoria.nombre}</td>
                   <td>
-                    {juego.plataformas.map((plat, idx) => (
-                      <span key={idx} className="badge bg-secondary platform-badge">{plat}</span>
+                    {juego.plataformas.map(p => (
+                      <span key={p.id} className="badge bg-secondary me-1">{p.nombre}</span>
                     ))}
                   </td>
-                  <td className="rating">
+                  <td>
                     {DibujarEstrellas(juego.rating)}
                     <span className="text-muted ms-2">{juego.rating.toFixed(1)}</span>
                   </td>
                   <td>{juego.lanzamiento.split("T")[0]}</td>
-                  <td className="price">S/ {juego.precio.toFixed(2)}</td>
+                  <td>S/ {juego.precio.toFixed(2)}</td>
                   <td>
-                    <Link to="/Inicio" className="btn btn-sm btn-primary w-100 mb-1">Comprar</Link>
-                    <button className="btn btn-sm btn-secondary w-100">Detalles</button>
+                    <Link to="/Catalogo" className="btn btn-sm btn-primary w-100 mb-1">Comprar</Link>
+                    <button className="btn btn-sm btn-secondary w-100" onClick={() => abrirModal(juego)}>Detalles</button>
                   </td>
                 </tr>
               ))}
@@ -119,8 +132,21 @@ const MasVendidos = () => {
           </table>
         </div>
 
-        <Paginacion paginaActual={1} totalPaginas={3} onCambiarPagina={() => {}} />
+        <Paginacion
+          paginaActual={paginaActual}
+          totalPaginas={totalPaginas}
+          onCambiarPagina={setPaginaActual}
+        />
       </div>
+
+      {juegoSeleccionado && (
+        <DetalleJuego
+          juego={juegoSeleccionado}
+          show={mostrarModal}
+          onHide={() => setMostrarModal(false)}
+          onAddComment={() => {}} // Aquí podrías pasar la función si manejas comentarios
+        />
+      )}
 
       <BarraCarrito />
       <Footer />

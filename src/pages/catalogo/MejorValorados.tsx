@@ -1,5 +1,5 @@
-import BarraCarrito from '../carrito/BarraCarrito';  
-import { handleAgregarAlCarrito } from '../carrito/DetalleCarrito';
+import BarraCarrito from '../carrito/BarraCarrito';
+import { handleAgregarAlCarrito } from '../../context/carrito';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Dropdown } from 'react-bootstrap';
@@ -29,12 +29,6 @@ function MejorValorados() {
         setJuegosFiltrados(ordenados);
       });
   }, []);
-
-  useEffect(() => {
-    if (nombreBusqueda.trim() !== '') {
-      filtrarJuegos(nombreBusqueda);
-    }
-  }, [nombreBusqueda]);
 
   const manejarCambioNombre = (e: React.ChangeEvent<HTMLInputElement>) => {
     const valor = e.target.value;
@@ -99,6 +93,7 @@ function MejorValorados() {
 
   return (
     <div id="mejor-valorados-page-container">
+      {/* Barra de navegación */}
       <nav className="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <div className="container">
           <Link className="navbar-brand" to="/Inicio">
@@ -136,6 +131,7 @@ function MejorValorados() {
         </div>
       </nav>
 
+      {/* Submenú */}
       <nav className="navbar navbar-expand-lg navbar-light bg-light">
         <div className="container">
           <ul className="nav justify-content-center w-100">
@@ -168,6 +164,7 @@ function MejorValorados() {
         </div>
       </nav>
 
+      {/* Contenido principal */}
       <div className="container mt-4">
         <h1 className="mb-4 page-title">Juegos Mejor Valorados</h1>
         <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
@@ -179,7 +176,9 @@ function MejorValorados() {
                 <div className="card-body">
                   <h5 className="card-title">{juego.nombre}</h5>
                   <div className="mb-2">
-                    {juego.plataformas.map(p => <span key={p} className="badge bg-secondary me-1">{p}</span>)}
+                    {juego.plataformas.map(p => (
+                      <span key={p.id} className="badge bg-secondary me-1">{p.nombre}</span>
+                    ))}
                   </div>
                   <div className="rating mb-2">
                     {[...Array(Math.floor(juego.rating))].map((_, i) => <i key={i} className="bi bi-star-fill text-warning"></i>)}
@@ -188,13 +187,26 @@ function MejorValorados() {
                     <span className="text-muted ms-2">{juego.rating}/5</span>
                   </div>
                   <p className="price">
-                    {juego.descuento > 0 && <span className="old-price">S/ {(juego.precio / (1 - juego.descuento / 100)).toFixed(2)}</span>}
+                    {juego.descuento > 0 && (
+                      <span className="old-price">S/ {(juego.precio / (1 - juego.descuento / 100)).toFixed(2)}</span>
+                    )}
                     <span className="new-price">S/ {juego.precio.toFixed(2)}</span>
                   </p>
                 </div>
                 <div className="card-footer d-flex justify-content-between">
-                  <button className="btn btn-sm btn-primary" data-id={juego.id} data-nombre={juego.nombre} data-precio={juego.precio} data-imagen={juego.imagen} onClick={handleAgregarAlCarrito}>Agregar al carrito</button>
-                  <button className="btn btn-sm btn-secondary" onClick={() => abrirModal(juego)}>Detalles</button>
+                  <button
+                    className="btn btn-sm btn-primary"
+                    data-id={juego.id}
+                    data-nombre={juego.nombre}
+                    data-precio={juego.precio}
+                    data-imagen={juego.imagen}
+                    onClick={handleAgregarAlCarrito}
+                  >
+                    Agregar al carrito
+                  </button>
+                  <button className="btn btn-sm btn-secondary" onClick={() => abrirModal(juego)}>
+                    Detalles
+                  </button>
                 </div>
               </div>
             </div>

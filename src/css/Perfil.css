@@ -112,3 +112,81 @@
 .perfil-btn-save:hover {
   background-color: rgba(200, 0, 0, 0.9);
 }
+
+.perfil-imagen-preview {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid #dc3545;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
+  margin-bottom: 20px;
+}
+.contenedor-perfil {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 40px;
+  background-color: #111;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 0 20px #dc3545;
+  color: white;
+}
+
+.columna-izquierda {
+  text-align: center;
+}
+
+.titulo-perfil {
+  margin-bottom: 20px;
+  color: #dc3545;
+}
+
+.perfil-imagen-preview {
+  width: 160px;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 4px solid #dc3545;
+  box-shadow: 0 0 12px rgba(255, 0, 0, 0.4);
+  margin-bottom: 10px;
+}
+
+.cambiar-foto {
+  display: block;
+  color: #dc3545;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+.columna-derecha {
+  flex: 1;
+}
+
+.perfil-form-control {
+  background-color: #222;
+  color: white;
+  border: none;
+  padding: 12px;
+  margin-bottom: 15px;
+  border-radius: 6px;
+  width: 100%;
+}
+
+.btn-guardar {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 12px;
+  width: 100%;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.btn-guardar:hover {
+  background-color: #c82333;
+}

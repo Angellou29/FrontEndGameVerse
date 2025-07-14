@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import Modal from 'react-bootstrap/Modal';
 import '../../css/DetalleJuego.css';
-import { handleAgregarAlCarrito } from '../carrito/DetalleCarrito';
+import { handleAgregarAlCarrito } from '../../context/carrito';
+import { useUser } from '../../context/UserContext';
+import { useNavigate } from 'react-router-dom';
+import { verificarCompra } from '../../api/apiVentas';
+import { useEffect } from 'react';
 
 export interface Comentario {
   id: number;
@@ -15,7 +19,10 @@ export interface Juego {
   id: number;
   nombre: string;
   precio: number;
-  plataformas: string[];
+  plataformas: {
+    id: number;
+    nombre: string;
+  }[];
   descuento: number;
   rating: number;
   imagen: string;
@@ -24,7 +31,10 @@ export interface Juego {
   trailerURL: string;
   galeria: string[];
   caracteristicas: string[];
-  categoria: string;
+  categoria: {
+    id: number;
+    nombre: string;
+  };
   comentarios: Comentario[];
   lanzamiento: string;
 }
@@ -40,6 +50,21 @@ function DetalleJuego({ juego, show, onHide, onAddComment }: DetalleJuegoProps) 
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [nuevoComentario, setNuevoComentario] = useState('');
   const [usuarioRating, setUsuarioRating] = useState(5);
+
+  const { autenticado, usuario } = useUser();
+  const navigate = useNavigate();
+  const [puedeComentar, setPuedeComentar] = useState(false);
+
+  useEffect(() => {
+    const checkCompra = async () => {
+      if (autenticado && juego?.id && usuario?.id) {
+        const comprado = await verificarCompra(usuario.id, juego.id);
+        setPuedeComentar(comprado);
+      }
+    };
+    checkCompra();
+  }, [autenticado, juego]);
+  
 
   if (!juego) return null;
 
@@ -57,6 +82,17 @@ function DetalleJuego({ juego, show, onHide, onAddComment }: DetalleJuegoProps) 
     });
 
     setNuevoComentario('');
+  };
+
+  const handleComprar = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!autenticado) {
+      alert('Debes iniciar sesión o registrarte para comprar este juego.');
+      navigate('/IniciarSesion');
+      return;
+    }
+
+    handleAgregarAlCarrito(e);
+    setTimeout(() => window.location.reload(), 500);
   };
 
   const formatoFecha = (fechaStr: string): string => {
@@ -125,8 +161,8 @@ function DetalleJuego({ juego, show, onHide, onAddComment }: DetalleJuegoProps) 
             <div className="mb-3">
               <h6 className="custom-platforms-title">Plataformas</h6>
               <div>
-                {juego.plataformas.map((plataforma) => (
-                  <span key={plataforma} className="badge bg-secondary me-1">{plataforma}</span>
+                {juego.plataformas.map((plataforma: { id: number; nombre: string }) => (
+                  <span key={plataforma.id} className="badge bg-secondary me-1">{plataforma.nombre}</span>
                 ))}
               </div>
             </div>
@@ -142,7 +178,7 @@ function DetalleJuego({ juego, show, onHide, onAddComment }: DetalleJuegoProps) 
 
             <div className="mb-3">
               <h6 className="custom-genres-title">Categoría</h6>
-              <span className="badge bg-info me-1">{juego.categoria}</span>
+              <span className="badge bg-info me-1">{juego.categoria.nombre}</span>
             </div>
 
             <div className="d-flex flex-grow-1 align-items-center justify-content-between mb-0">
@@ -160,10 +196,7 @@ function DetalleJuego({ juego, show, onHide, onAddComment }: DetalleJuegoProps) 
                 data-nombre={juego.nombre}
                 data-precio={juego.precio.toFixed(2)}
                 data-imagen={juego.imagen}
-                onClick={(e) => {
-                  handleAgregarAlCarrito(e);
-                  setTimeout(() => window.location.reload(), 500);
-                }}
+                onClick={handleComprar}
               >
                 Agregar al carrito
               </button>
@@ -173,28 +206,31 @@ function DetalleJuego({ juego, show, onHide, onAddComment }: DetalleJuegoProps) 
 
         <div id="toast" className="toast"></div>
 
-        <div className="mt-4">
-          <h5 className="custom-reviews-title">Reseñas</h5>
-          {juego.comentarios?.map((comentario) => (
-            <div key={comentario.id} className="card mb-2 custom-review-card">
-              <div className="card-body">
-                <div className="d-flex justify-content-between">
-                  <h6 className="card-title custom-review-user">{comentario.user}</h6>
-                  <div>
-                    {[...Array(5)].map((_, i) => (
-                      <i
-                        key={i}
-                        className={`bi ${i < comentario.rating ? 'bi-star-fill text-warning' : 'bi-star'} custom-review-star`}
-                      ></i>
-                    ))}
-                  </div>
-                </div>
-                <p className="card-text custom-review-text">{comentario.text}</p>
-                <small className="text-muted custom-review-date">{comentario.date}</small>
-              </div>
-            </div>
-          ))}
+        <div id="toast" className="toast"></div>
 
+      <div className="mt-4">
+        <h5 className="custom-reviews-title">Reseñas</h5>
+        {juego.comentarios?.map((comentario) => (
+          <div key={comentario.id} className="card mb-2 custom-review-card">
+            <div className="card-body">
+              <div className="d-flex justify-content-between">
+                <h6 className="card-title custom-review-user">{comentario.user}</h6>
+                <div>
+                  {[...Array(5)].map((_, i) => (
+                    <i
+                      key={i}
+                      className={`bi ${i < comentario.rating ? 'bi-star-fill text-warning' : 'bi-star'} custom-review-star`}
+                    ></i>
+                  ))}
+                </div>
+              </div>
+              <p className="card-text custom-review-text">{comentario.text}</p>
+              <small className="text-muted custom-review-date">{comentario.date}</small>
+            </div>
+          </div>
+        ))}
+
+        {puedeComentar ? (
           <div className="mt-4 custom-add-review">
             <h5 className="custom-reviews-title">Añadir tu reseña</h5>
             <div className="mb-3">
@@ -227,13 +263,16 @@ function DetalleJuego({ juego, show, onHide, onAddComment }: DetalleJuegoProps) 
               Enviar reseña
             </button>
           </div>
-        </div>
-      </Modal.Body>
-      <Modal.Footer className="custom-modal-footer">
-        <button type="button" className="btn btn-danger" onClick={onHide}>Cerrar</button>
-      </Modal.Footer>
-    </Modal>
-  );
+        ) : (
+          <p className="text-light mt-3">Debes comprar este juego para dejar una reseña.</p>
+        )}
+      </div>
+    </Modal.Body>
+    <Modal.Footer className="custom-modal-footer">
+      <button type="button" className="btn btn-danger" onClick={onHide}>Cerrar</button>
+    </Modal.Footer>
+  </Modal>
+);
 }
 
 export default DetalleJuego;

@@ -1,24 +1,51 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import NavBarra from "../BarraNavAdmin";
-import Gaming from '../../../imagenes/Usuarios/Gaming.png';
-import Mualani from '../../../imagenes/Usuarios/Mualani.jpg';
-import Navia from '../../../imagenes/Usuarios/Navia.jpg';
-
+import { useUser } from '../../../context/UserContext';
 import '../../../css/ListaUser.css';
 
-interface User {
+interface Usuario {
   id: number;
   nickname: string;
-  name: string;
-  imagen: string; 
+  correo: string;
+  pais: string | null;
+  imagen: string | null;
+  tipo: string;
 }
 
-const usuarios: User[] = [
-  { id: 1, nickname: 'Gaming', name: 'Yip Gaming', imagen: Gaming },
-  { id: 2, nickname: 'Mualani', name: 'Mualani Umoja', imagen: Mualani },
-  { id: 3, nickname: 'Navia', name: 'Navia Caspar', imagen: Navia },
-];
-
 const MainContent = () => {
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const navigate = useNavigate();
+  const { usuario } = useUser();
+
+  useEffect(() => {
+    // 🔒 Protege por autenticación y rol
+    if (!usuario) {
+      navigate('/IniciarSesion');
+      return;
+    }
+
+    if (usuario.tipo !== 'admin') {
+      alert('❌ No tienes permisos para ver esta página.');
+      navigate('/Inicio');
+      return;
+    }
+
+    const fetchUsuarios = async () => {
+      try {
+        const response = await axios.get('http://localhost:3001/api/usuarios', {
+          withCredentials: true
+        });
+        setUsuarios(response.data);
+      } catch (error) {
+        console.error('❌ Error al obtener usuarios:', error);
+      }
+    };
+
+    fetchUsuarios();
+  }, [usuario, navigate]);
+
   return (
     <div className="main-content">
       <div className="container-fluid px-4 py-3">
@@ -32,17 +59,30 @@ const MainContent = () => {
                     <tr>
                       <th>Id</th>
                       <th>Foto</th>
-                      <th>Alias </th>
-                      <th>Nombre</th>
+                      <th>Alias</th>
+                      <th>Correo</th>
                     </tr>
                   </thead>
                   <tbody>
                     {usuarios.map(user => (
                       <tr key={user.id}>
                         <td>{user.id}</td>
-                        <td><img src={user.imagen} alt={user.name} className="user-photo" /></td>
+                        <td>
+                          <img
+                            src={
+                              user.imagen
+                                ? `http://localhost:3001/static/usuarios/${user.imagen}`
+                                : `http://localhost:3001/static/usuarios/default.jpg`
+                            }
+                            alt={user.nickname}
+                            className="user-photo"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'https://via.placeholder.com/50';
+                            }}
+                          />
+                        </td>
                         <td>{user.nickname}</td>
-                        <td>{user.name}</td>
+                        <td>{user.correo}</td>
                       </tr>
                     ))}
                   </tbody>

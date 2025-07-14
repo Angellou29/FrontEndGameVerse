@@ -48,11 +48,29 @@ body {
     color: var(--primary-color);
 }
 
+.alert-custom-restringido {
+  background-color: #320000;     /* rojo oscuro de fondo */
+  color: #ffdddd;                /* texto claro para contraste */
+  border: 1px solid #ff0000;     /* borde rojo brillante */
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  font-weight: 500;
+  max-width: 800px;
+  margin: 50px auto;
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+}
 
+.alert-custom-restringido h4 {
+  color: #ff4d4d;
+  font-size: 1.8rem;
+  margin-bottom: 10px;
+}
 
-
-
-
+.alert-custom-restringido p {
+  color: #ffcccc;
+  font-size: 1.1rem;
+}
 
 h5,h2 {
     color: gainsboro;

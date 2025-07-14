@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Modal } from 'react-bootstrap';
+import { useUser } from '../../context/UserContext';
+import { useNavigate } from 'react-router-dom';
 import NavBarra from './BarraNavAdmin';
 import '../../css/ListaJuegos.css';
 
@@ -25,6 +27,18 @@ const ListaJuegos = () => {
     precioMax: ''
   });
 
+  const { usuario, autenticado } = useUser();
+  const navigate = useNavigate();
+
+  // Protección de ruta
+  useEffect(() => {
+    if (!autenticado) {
+      navigate('/IniciarSesion');
+    } else if (usuario?.tipo !== 'admin') {
+      navigate('/IniciarSesion');
+    }
+  }, [autenticado, usuario, navigate]);
+
   useEffect(() => {
     fetch('http://localhost:3001/api/juegos')
       .then(res => res.json())
@@ -48,18 +62,18 @@ const ListaJuegos = () => {
   };
 
   const applyFilters = () => {
-  const filtrados = juegos.filter(juego => {
-    if (filters.fecha) {
-      const juegoFecha = new Date(juego.lanzamiento).toISOString().split('T')[0];
-      if (juegoFecha !== filters.fecha) return false;
-    }
-    if (filters.categoria && juego.categoria !== filters.categoria) return false;
-    if (filters.precioMin && juego.precio < parseFloat(filters.precioMin)) return false;
-    if (filters.precioMax && juego.precio > parseFloat(filters.precioMax)) return false;
-    return true;
-  });
-  setFilteredJuegos(filtrados);
-  setShowFilters(false);
+    const filtrados = juegos.filter(juego => {
+      if (filters.fecha) {
+        const juegoFecha = new Date(juego.lanzamiento).toISOString().split('T')[0];
+        if (juegoFecha !== filters.fecha) return false;
+      }
+      if (filters.categoria && juego.categoria !== filters.categoria) return false;
+      if (filters.precioMin && juego.precio < parseFloat(filters.precioMin)) return false;
+      if (filters.precioMax && juego.precio > parseFloat(filters.precioMax)) return false;
+      return true;
+    });
+    setFilteredJuegos(filtrados);
+    setShowFilters(false);
   };
 
   return (

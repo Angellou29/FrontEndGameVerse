@@ -1,31 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Button, Form } from 'react-bootstrap';
+import { Modal, Button, Form, Alert } from 'react-bootstrap';
 import '../../../css/EditarNoticia.css';
+import { editarNoticia } from '../../../api/apiNoticias';
+import type { DetalleNoticia } from '../Noticias/ListadoNoticias'; 
 
-interface DetalleNoticia {
-  id: number;
-  foto?: string;
-  name: string;
-  descripcion: string;
-}
-
-// Estructura Editar Noticia
 interface EditarNoticiaProps {
   noticiaActual: DetalleNoticia | null;
   onCerrar: () => void;
-  onGuardar: (datosEditados: DetalleNoticia) => void;
+  onGuardar: () => void; // recarga noticias después de guardar
   show: boolean;
 }
 
 const EditarNoticia: React.FC<EditarNoticiaProps> = ({ noticiaActual, onCerrar, onGuardar, show }) => {
-  const [name, setName] = useState<string>(noticiaActual?.name || '');
-  const [descripcion, setDescripcion] = useState<string>(noticiaActual?.descripcion || '');
+  const [name, setName] = useState('');
+  const [descripcion, setDescripcion] = useState('');
   const [foto, setFoto] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (noticiaActual) {
-      setName(noticiaActual.name);
-      setDescripcion(noticiaActual.descripcion);
+      setName(noticiaActual.titulo);
+      setDescripcion(noticiaActual.contenido);
       setFoto(null);
     } else {
       setName('');
@@ -34,16 +29,34 @@ const EditarNoticia: React.FC<EditarNoticiaProps> = ({ noticiaActual, onCerrar, 
     }
   }, [noticiaActual]);
 
-  // Envia Formulario
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (noticiaActual) {
-      onGuardar({
-        ...noticiaActual,
-        name: name,
-        descripcion: descripcion,
-        foto: foto ? foto.name : noticiaActual.foto
-      });
+    if (!noticiaActual) return;
+
+    try {
+      const formData = new FormData();
+
+      if (name !== noticiaActual.titulo) {
+        formData.append('name', name);
+      }
+      if (descripcion !== noticiaActual.contenido) {
+        formData.append('descripcion', descripcion);
+      }
+      if (foto) {
+        formData.append('foto', foto);
+      }
+
+      if (Array.from(formData.keys()).length === 0) {
+        setError('No se hicieron cambios.');
+        return;
+      }
+
+      await editarNoticia(noticiaActual.id, formData); // ✅ peticion real
+      setError(null);
+      onGuardar(); // recarga lista
+      onCerrar();  // cierra modal
+    } catch (err) {
+      setError('Error al editar la noticia.');
     }
   };
 
@@ -54,6 +67,7 @@ const EditarNoticia: React.FC<EditarNoticiaProps> = ({ noticiaActual, onCerrar, 
       </Modal.Header>
       <Form onSubmit={handleSubmit}>
         <Modal.Body className="bg-dark text-white">
+          {error && <Alert variant="danger">{error}</Alert>}
           {noticiaActual ? (
             <>
               <Form.Group className="mb-3">
@@ -82,22 +96,21 @@ const EditarNoticia: React.FC<EditarNoticiaProps> = ({ noticiaActual, onCerrar, 
                 <Form.Control
                   type="file"
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    if (e.target.files && e.target.files[0]) {
-                      setFoto(e.target.files[0]);
-                    }
+                    const file = e.target.files?.[0];
+                    if (file) setFoto(file);
                   }}
                   className="bg-secondary text-white"
                 />
-                 {noticiaActual.foto && !foto && (
-                   <Form.Text className="text-muted">
-                     Foto actual: {noticiaActual.foto.split('/').pop()}
-                   </Form.Text>
-                 )}
-                 {foto && (
-                   <Form.Text className="text-muted">
-                     Nueva foto seleccionada: {foto.name}
-                   </Form.Text>
-                 )}
+                {noticiaActual.imagen && !foto && (
+                  <Form.Text className="text-muted">
+                    Foto actual: {noticiaActual.imagen.split('/').pop()}
+                  </Form.Text>
+                )}
+                {foto && (
+                  <Form.Text className="text-muted">
+                    Nueva foto: {foto.name}
+                  </Form.Text>
+                )}
               </Form.Group>
             </>
           ) : (
